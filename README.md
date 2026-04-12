@@ -121,7 +121,7 @@ http://localhost:3000/room/123
 
 ## 📸 Preview
 
-(Add screenshots here)
+Available once the project is done
 
 ---
 
