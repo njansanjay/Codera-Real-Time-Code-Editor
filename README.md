@@ -48,7 +48,7 @@ codera/
 ### 1️⃣ Clone Repository
 
 ```
-git clone https://github.com/yourusername/codera.git
+git clone https://github.com/njansanjay/codera.git
 cd codera
 ```
 
