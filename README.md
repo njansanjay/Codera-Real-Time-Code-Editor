@@ -104,7 +104,7 @@ http://localhost:3000/room/123
 ## ⚠️ Limitations
 
 * No conflict resolution (last write wins)
-* No authentication system
+* Still no authentication system(will be resolved later)
 * In-memory user tracking (not scalable)
 
 ---
