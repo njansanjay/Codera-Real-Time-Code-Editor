@@ -12,7 +12,9 @@ function EditorPage() {
   const [code, setCode] = useState("");
   const [users, setUsers] = useState(1);
   const [typing, setTyping] = useState(false);
-
+  const [terminal, setTerminal] = useState("");
+  const [input, setInput] = useState("");
+  
   useEffect(() => {
     const client = new Client({
       webSocketFactory: () => new SockJS("http://localhost:8080/ws"),
@@ -76,6 +78,28 @@ function EditorPage() {
     });
   };
 
+  const runCode = async () => {
+    const res = await fetch("http://localhost:8080/run", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        code: code,
+        language: "python",
+        input: input,
+      }),
+    });
+
+    const data = await res.text();
+
+    setTerminal((prev) =>
+      prev + "\n> " + input + "\n" + data
+    );
+
+    setInput("");
+  };
+
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);
     alert("Link copied!");
@@ -87,6 +111,35 @@ function EditorPage() {
       <button onClick={copyLink}>Copy Room Link</button>
       <p>Users online: {users}</p>
       {typing && <p>Someone is typing...</p>}
+
+      <button onClick={runCode}>Run Code</button>
+
+      <div style={{
+        background: "black",
+        color: "lime",
+        padding: "10px",
+        marginTop: "10px"
+      }}>
+        <pre>{terminal}</pre>
+
+        <input
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder="Enter input..."
+        style={{
+          width: "100%",
+          background: "black",
+          color: "lime",
+          border: "none",
+          outline: "none"
+        }}
+        />
+      </div>
+      
+
+      <pre style={{ background: "black", color: "lime", padding: "10px" }}>
+        
+      </pre>
 
       <Editor
         height="500px"
