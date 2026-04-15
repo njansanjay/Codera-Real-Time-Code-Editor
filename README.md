@@ -1,4 +1,4 @@
-# 🚀 Codera — Real-Time Collaborative Code Editor
+# 🚀 Codera — Real-Time Collaborative Code Editor ![Status](https://img.shields.io/badge/status-in%20progress-yellow?style=for-the-badge)
 
 Codera is a full-stack real-time collaborative coding platform where multiple users can join shared rooms and edit code together instantly.
 
