@@ -4,16 +4,18 @@ import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import Editor from "@monaco-editor/react";
 
+
 let stompClient = null;
 
 function EditorPage() {
+  const [terminal, setTerminal] = useState("");
+  const [input, setInput] = useState("");
   const { roomId } = useParams();
 
   const [code, setCode] = useState("");
   const [users, setUsers] = useState(1);
   const [typing, setTyping] = useState(false);
-  const [terminal, setTerminal] = useState("");
-  const [input, setInput] = useState("");
+  
   
   useEffect(() => {
     const client = new Client({
@@ -37,10 +39,19 @@ function EditorPage() {
           setTimeout(() => setTyping(false), 1000);
         });
 
+        // 🔥 START TERMINAL
+        client.publish({
+          destination: "/app/terminal/start",
+        });
+
         // SEND JOIN EVENT
         client.publish({
           destination: "/app/join",
           body: JSON.stringify({ roomId }),
+        });
+        // 🔥 TERMINAL OUTPUT
+        client.subscribe("/topic/terminal", (msg) => {
+          setTerminal((prev) => prev + "\n" + msg.body);
         });
       },
     });
@@ -100,55 +111,45 @@ function EditorPage() {
     setInput("");
   };
 
+  const sendTerminalInput = (e) => {
+  if (e.key === "Enter") {
+    stompClient.publish({
+      destination: "/app/terminal/input",
+      body: e.target.value,
+    });
+    e.target.value = "";
+  }
+};
+
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);
     alert("Link copied!");
   };
 
   return (
-    <div>
-      <h2>Room: {roomId}</h2>
-      <button onClick={copyLink}>Copy Room Link</button>
-      <p>Users online: {users}</p>
-      {typing && <p>Someone is typing...</p>}
-
-      <button onClick={runCode}>Run Code</button>
-
       <div style={{
         background: "black",
         color: "lime",
         padding: "10px",
-        marginTop: "10px"
-      }}>
+        marginTop: "10px",
+        height: "200px",
+        overflowY: "auto"
+    }}>
         <pre>{terminal}</pre>
 
         <input
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        placeholder="Enter input..."
-        style={{
-          width: "100%",
-          background: "black",
-          color: "lime",
-          border: "none",
-          outline: "none"
-        }}
+          type="text"
+          onKeyDown={sendTerminalInput}
+          placeholder="Type command and press Enter"
+          style={{
+            width: "100%",
+            background: "black",
+            color: "white",
+            border: "none",
+            outline: "none"
+          }}
         />
       </div>
-      
-
-      <pre style={{ background: "black", color: "lime", padding: "10px" }}>
-        
-      </pre>
-
-      <Editor
-        height="500px"
-        defaultLanguage="javascript"
-        theme="vs-dark"
-        value={code}
-        onChange={(value) => sendCode(value)}
-      />
-    </div>
   );
 }
 
