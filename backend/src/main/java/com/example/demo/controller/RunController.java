@@ -34,6 +34,18 @@ public class RunController {
         }
     }
 
+    @PostMapping("/save")
+    public void saveCode(@RequestBody CodeRequest request) {
+        try {
+            String fileName = "temp.py";
+            FileWriter writer = new FileWriter(fileName);
+            writer.write(request.getCode());
+            writer.close();
+        }   catch (Exception e) {
+                e.printStackTrace();
+        }
+}
+
     private void writeToFile(String fileName, String code) throws IOException {
         FileWriter writer = new FileWriter(fileName);
         writer.write(code);
@@ -41,32 +53,30 @@ public class RunController {
     }
 
     private String executeCommand(String command, String input) throws IOException {
-    Process process = Runtime.getRuntime().exec(command);
+    ProcessBuilder builder = new ProcessBuilder(command.split(" "));
+    builder.redirectErrorStream(true);
 
-    // 🔥 SEND INPUT TO PROGRAM
+    Process process = builder.start();
+
+    // send input
     if (input != null && !input.isEmpty()) {
-        OutputStream os = process.getOutputStream();
-        os.write((input + "\n").getBytes());
-        os.flush();
-        os.close();
+        BufferedWriter writer = new BufferedWriter(
+                new OutputStreamWriter(process.getOutputStream())
+        );
+        writer.write(input);
+        writer.newLine();
+        writer.flush();
+        writer.close();
     }
 
     BufferedReader reader = new BufferedReader(
             new InputStreamReader(process.getInputStream())
     );
 
-    BufferedReader errorReader = new BufferedReader(
-            new InputStreamReader(process.getErrorStream())
-    );
-
     StringBuilder output = new StringBuilder();
     String line;
 
     while ((line = reader.readLine()) != null) {
-        output.append(line).append("\n");
-    }
-
-    while ((line = errorReader.readLine()) != null) {
         output.append(line).append("\n");
     }
 

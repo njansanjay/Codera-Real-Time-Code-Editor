@@ -37,6 +37,7 @@ frontend/node_modules/
 
 # backend
 backend/target/
+backend/temp.py
 
 # env
 .env

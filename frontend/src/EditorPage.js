@@ -90,36 +90,44 @@ function EditorPage() {
   };
 
   const runCode = async () => {
-    const res = await fetch("http://localhost:8080/run", {
+    // 1. Clear terminal visually (optional but useful)
+    setTerminal(prev => prev + "\n> Running...\n");
+
+    // 2. Save file
+    await fetch("http://localhost:8080/save", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        code: code,
-        language: "python",
-        input: input,
-      }),
-    });
+        body: JSON.stringify({
+          code: code,
+          language: "python"
+        }),
+      });
 
-    const data = await res.text();
-
-    setTerminal((prev) =>
-      prev + "\n> " + input + "\n" + data
-    );
-
-    setInput("");
+    // 3. SMALL DELAY (IMPORTANT)
+    setTimeout(() => {
+      stompClient.publish({
+        destination: "/app/terminal/input",
+        body: "python -u temp.py"
+      });
+    }, 100);
   };
-
+  
   const sendTerminalInput = (e) => {
-  if (e.key === "Enter") {
-    stompClient.publish({
-      destination: "/app/terminal/input",
-      body: e.target.value,
-    });
-    e.target.value = "";
-  }
-};
+    if (e.key === "Enter") {
+      const value = e.target.value.trim();
+
+      if (!value) return; // ignore empty input
+
+      stompClient.publish({
+        destination: "/app/terminal/input",
+        body: value,
+      });
+
+      e.target.value = "";
+    }
+  };
 
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -127,30 +135,68 @@ function EditorPage() {
   };
 
   return (
-      <div style={{
-        background: "black",
-        color: "lime",
-        padding: "10px",
-        marginTop: "10px",
-        height: "200px",
-        overflowY: "auto"
-    }}>
-        <pre>{terminal}</pre>
+  <div>
+    {/* EDITOR */}
+    <Editor
+      height="400px"
+      theme="vs-dark"
+      value={code}
+      onChange={sendCode}
+    />
 
-        <input
-          type="text"
-          onKeyDown={sendTerminalInput}
-          placeholder="Type command and press Enter"
-          style={{
-            width: "100%",
-            background: "black",
-            color: "white",
-            border: "none",
-            outline: "none"
-          }}
-        />
-      </div>
-  );
+    {/* <input
+      type="text"
+      value={input}
+      onChange={(e) => setInput(e.target.value)}
+      placeholder="Enter program input"
+      style={{
+        marginTop: "10px",
+        width: "100%",
+        padding: "5px"
+      }}
+    /> */}
+
+    {/* RUN BUTTON */}
+    <button 
+      onClick={runCode}
+      style={{
+        marginTop: "10px",
+        padding: "8px 16px",
+        background: "green",
+        color: "white",
+        border: "none",
+        cursor: "pointer"
+      }}
+    >
+      ▶ Run Code
+    </button>
+
+    {/* TERMINAL */}
+    <div style={{
+      background: "black",
+      color: "lime",
+      padding: "10px",
+      marginTop: "10px",
+      height: "200px",
+      overflowY: "auto"
+    }}>
+      <pre>{terminal}</pre>
+
+      <input
+        type="text"
+        onKeyDown={sendTerminalInput}
+        placeholder="Type command and press Enter"
+        style={{
+          width: "100%",
+          background: "black",
+          color: "white",
+          border: "none",
+          outline: "none"
+        }}
+      />
+    </div>
+  </div>
+);
 }
 
 export default EditorPage;

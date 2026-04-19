@@ -22,7 +22,9 @@ public class TerminalController {
     @MessageMapping("/terminal/start")
     public void startTerminal() {
         try {
-            process = Runtime.getRuntime().exec("cmd"); // Windows terminal
+            ProcessBuilder builder = new ProcessBuilder("cmd");
+            builder.redirectErrorStream(true); // merge stdout + stderr
+            process = builder.start();
 
             writer = new BufferedWriter(
                     new OutputStreamWriter(process.getOutputStream())
@@ -32,48 +34,13 @@ public class TerminalController {
                     new InputStreamReader(process.getInputStream())
             );
 
-            // 🔥 READ OUTPUT CONTINUOUSLY
+            // SINGLE thread → read output
             new Thread(() -> {
                 try {
                     String line;
-                    new Thread(() -> {
-                            try {
-                                InputStream is = process.getInputStream();
-                                int ch;
-                                StringBuilder output = new StringBuilder();
-
-                                while ((ch = is.read()) != -1) {
-                                    output.append((char) ch);
-
-                                    if (ch == '\n') {
-                                        messagingTemplate.convertAndSend("/topic/terminal", output.toString());
-                                        output.setLength(0);
-                                    }
-                                }
-                    } catch (Exception e) {
-                                e.printStackTrace();
+                    while ((line = reader.readLine()) != null) {
+                        messagingTemplate.convertAndSend("/topic/terminal", line);
                     }
-            }).start();
-
-
-            new Thread(() -> {
-                try {
-                    InputStream es = process.getErrorStream();
-                    int ch;
-                    StringBuilder output = new StringBuilder();
-
-                    while ((ch = es.read()) != -1) {
-                        output.append((char) ch);
-
-                        if (ch == '\n') {
-                            messagingTemplate.convertAndSend("/topic/terminal", output.toString());
-                            output.setLength(0);
-                        }
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }).start();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -90,6 +57,7 @@ public class TerminalController {
         try {
             if (writer != null) {
                 writer.write(input + "\n");
+                writer.newLine(); // important
                 writer.flush();
             }
         } catch (Exception e) {
