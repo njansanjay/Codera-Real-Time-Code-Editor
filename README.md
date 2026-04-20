@@ -93,8 +93,11 @@ http://localhost:3000
 1. Open:
 
 ```
-http://localhost:3000/room/123
+http://localhost:3000/
 ```
+* Create a room
+* Send the room id to your friend
+* Code Together 
 
 2. Share the same URL with others
 
