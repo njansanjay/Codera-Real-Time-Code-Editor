@@ -136,6 +136,30 @@ function EditorPage() {
 
   return (
   <div>
+
+    <div style={{
+      color: "white",
+      background: "#222",
+      padding: "8px",
+      marginBottom: "5px"
+    }}>
+      👥 Users in room: {users}
+    </div>
+
+    <button
+      onClick={copyLink}
+      style={{
+        marginBottom: "10px",
+        padding: "6px 12px",
+        background: "#444",
+        color: "white",
+        border: "none",
+        cursor: "pointer"
+      }}
+    >
+        🔗 Copy Room Link
+    </button>
+    
     {/* EDITOR */}
     <Editor
       height="400px"
