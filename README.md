@@ -97,7 +97,9 @@ http://localhost:3000/
 ```
 * Create a room
 * Send the room id to your friend
-* Code Together 
+* Code Together
+
+
 
 2. Share the same URL with others
 
