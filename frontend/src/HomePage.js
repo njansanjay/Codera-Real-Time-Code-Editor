@@ -129,7 +129,7 @@ function HomePage() {
             <input
               value={roomInput}
               onChange={(e) => setRoomInput(e.target.value)}
-              placeholder="Room ID"
+              placeholder="Enter Room ID"
               style={{
                 padding: "10px",
                 width: "200px",
@@ -167,7 +167,26 @@ function HomePage() {
             >
               Cancel
             </button>
+            <br /><br />
+          <p style={{ marginTop: "10px" }}>
+  Don't have Room ID?{" "}
+  <span
+    onClick={() => {
+      setShowJoin(false);   
+      createRoom();         
+    }}
+    style={{
+      color: "#4caf50",
+      cursor: "pointer",
+      textDecoration: "underline"
+    }}
+  >
+    <br />
+    Create one
+  </span>
+</p>
           </div>
+          
         </div>
       )}
     </div>
