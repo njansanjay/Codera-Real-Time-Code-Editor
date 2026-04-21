@@ -3,7 +3,7 @@ package com.example.demo.model;
 public class CodeRequest {
     private String code;
     private String language;
-    private String input; // 🔥 NEW
+    private String input; 
 
     public String getCode() { return code; }
     public void setCode(String code) { this.code = code; }

@@ -1,85 +1,80 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
+import { Client } from "@stomp/stompjs";
 import Editor from "@monaco-editor/react";
 
-
-let stompClient = null;
-
 function EditorPage() {
-  const [terminal, setTerminal] = useState("");
-  const [input, setInput] = useState("");
   const { roomId } = useParams();
 
   const [code, setCode] = useState("");
   const [users, setUsers] = useState(1);
   const [typing, setTyping] = useState(false);
-  
-  
+
+  const [terminal, setTerminal] = useState("");
+  const [input, setInput] = useState("");
+  const [stompClient, setStompClient] = useState(null);
+
+  // 🔥 CONNECT WEBSOCKET
   useEffect(() => {
     const client = new Client({
       webSocketFactory: () => new SockJS("http://localhost:8080/ws"),
-      reconnectDelay: 5000,
 
       onConnect: () => {
-        // CODE SYNC
-        client.subscribe(`/topic/code/${roomId}`, (message) => {
-          const data = JSON.parse(message.body);
-          setCode(data.content);
+        setStompClient(client);
+
+        // terminal output
+        client.subscribe("/topic/terminal", (msg) => {
+          setTerminal((prev) => prev + msg.body + "\n");
         });
 
-        client.subscribe(`/topic/users/${roomId}`, (msg) => {
-            setUsers(Number(msg.body));
-        });
-
-        // TYPING
-        client.subscribe(`/topic/typing/${roomId}`, () => {
-          setTyping(true);
-          setTimeout(() => setTyping(false), 1000);
-        });
-
-        // 🔥 START TERMINAL
+        // start terminal
         client.publish({
           destination: "/app/terminal/start",
         });
 
-        // SEND JOIN EVENT
+        // join room
         client.publish({
           destination: "/app/join",
           body: JSON.stringify({ roomId }),
         });
-        // 🔥 TERMINAL OUTPUT
-        client.subscribe("/topic/terminal", (msg) => {
-          setTerminal((prev) => prev + "\n" + msg.body);
+
+        // users
+        client.subscribe(`/topic/users/${roomId}`, (msg) => {
+          setUsers(Number(msg.body));
+        });
+
+        // code sync
+        client.subscribe(`/topic/code/${roomId}`, (msg) => {
+          const data = JSON.parse(msg.body);
+          setCode(data.content);
+        });
+
+        // typing
+        client.subscribe(`/topic/typing/${roomId}`, () => {
+          setTyping(true);
+          setTimeout(() => setTyping(false), 1000);
         });
       },
     });
 
     client.activate();
-    stompClient = client;
 
     return () => {
-      if (client.connected) {
-        client.publish({
-          destination: "/app/leave",
-          body: JSON.stringify({ roomId }),
-        });
-      }
       client.deactivate();
     };
   }, [roomId]);
 
-  const sendCode = (newCode) => {
-    if (!newCode) return;
-
-    setCode(newCode);
+  // 🔥 SEND CODE
+  const sendCode = (value) => {
+    setCode(value);
+    if (!stompClient) return;
 
     stompClient.publish({
       destination: "/app/code",
       body: JSON.stringify({
-        content: newCode,
-        roomId: roomId,
+        roomId,
+        content: value,
       }),
     });
 
@@ -89,138 +84,97 @@ function EditorPage() {
     });
   };
 
+  // 🔥 RUN CODE
   const runCode = async () => {
-    // 1. Clear terminal visually (optional but useful)
-    setTerminal(prev => prev + "\n> Running...\n");
+    if (!stompClient) return;
 
-    // 2. Save file
+    setTerminal((prev) => prev + "\n> Running...\n");
+
     await fetch("http://localhost:8080/save", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-        body: JSON.stringify({
-          code: code,
-          language: "python"
-        }),
-      });
+      body: JSON.stringify({ code, language: "python" }),
+    });
 
-    // 3. SMALL DELAY (IMPORTANT)
-    setTimeout(() => {
-      stompClient.publish({
-        destination: "/app/terminal/input",
-        body: "python -u temp.py"
-      });
-    }, 100);
-  };
-  
-  const sendTerminalInput = (e) => {
-    if (e.key === "Enter") {
-      const value = e.target.value.trim();
-
-      if (!value) return; // ignore empty input
-
-      stompClient.publish({
-        destination: "/app/terminal/input",
-        body: value,
-      });
-
-      e.target.value = "";
-    }
+    stompClient.publish({
+      destination: "/app/terminal/input",
+      body: "python temp.py",
+    });
   };
 
+  // 🔥 SEND INPUT
+  const sendInput = () => {
+    if (!stompClient || !input.trim()) return;
+
+    stompClient.publish({
+      destination: "/app/terminal/input",
+      body: input,
+    });
+
+    setInput("");
+  };
+
+  // 🔥 COPY LINK
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);
     alert("Link copied!");
   };
 
   return (
-  <div>
+    <div>
+      <div style={{ color: "white", background: "#222", padding: "8px" }}>
+        👥 Users in room: {users}
+      </div>
 
-    <div style={{
-      color: "white",
-      background: "#222",
-      padding: "8px",
-      marginBottom: "5px"
-    }}>
-      👥 Users in room: {users}
-    </div>
-
-    <button
-      onClick={copyLink}
-      style={{
-        marginBottom: "10px",
-        padding: "6px 12px",
-        background: "#444",
-        color: "white",
-        border: "none",
-        cursor: "pointer"
-      }}
-    >
+      <button onClick={copyLink} style={{ margin: "10px" }}>
         🔗 Copy Room Link
-    </button>
-    
-    {/* EDITOR */}
-    <Editor
-      height="400px"
-      theme="vs-dark"
-      value={code}
-      onChange={sendCode}
-    />
+      </button>
 
-    {/* <input
-      type="text"
-      value={input}
-      onChange={(e) => setInput(e.target.value)}
-      placeholder="Enter program input"
-      style={{
-        marginTop: "10px",
-        width: "100%",
-        padding: "5px"
-      }}
-    /> */}
+      <Editor
+        height="400px"
+        theme="vs-dark"
+        value={code}
+        onChange={sendCode}
+      />
 
-    {/* RUN BUTTON */}
-    <button 
-      onClick={runCode}
-      style={{
-        marginTop: "10px",
-        padding: "8px 16px",
-        background: "green",
-        color: "white",
-        border: "none",
-        cursor: "pointer"
-      }}
-    >
-      ▶ Run Code
-    </button>
-
-    {/* TERMINAL */}
-    <div style={{
-      background: "black",
-      color: "lime",
-      padding: "10px",
-      marginTop: "10px",
-      height: "200px",
-      overflowY: "auto"
-    }}>
-      <pre>{terminal}</pre>
-
-      <input
-        type="text"
-        onKeyDown={sendTerminalInput}
-        placeholder="Type command and press Enter"
+      <button
+        onClick={runCode}
         style={{
-          width: "100%",
-          background: "black",
+          marginTop: "10px",
+          padding: "8px 16px",
+          background: "green",
           color: "white",
           border: "none",
-          outline: "none"
+          cursor: "pointer",
         }}
+      >
+        ▶ Run Code
+      </button>
+
+      <pre
+        style={{
+          background: "black",
+          color: "lime",
+          height: "200px",
+          overflow: "auto",
+          marginTop: "10px",
+        }}
+      >
+        {terminal}
+      </pre>
+
+      <input
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder="Type input..."
+        style={{ width: "80%", padding: "5px" }}
       />
+
+      <button onClick={sendInput}>Send</button>
     </div>
-  </div>
-);
+  );
 }
 
 export default EditorPage;

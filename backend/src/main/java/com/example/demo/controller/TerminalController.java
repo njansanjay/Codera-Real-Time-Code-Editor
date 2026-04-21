@@ -22,8 +22,9 @@ public class TerminalController {
     @MessageMapping("/terminal/start")
     public void startTerminal() {
         try {
-            ProcessBuilder builder = new ProcessBuilder("cmd");
-            builder.redirectErrorStream(true); // merge stdout + stderr
+            ProcessBuilder builder = new ProcessBuilder("python", "-u", "temp.py");
+            builder.redirectErrorStream(true);
+
             process = builder.start();
 
             writer = new BufferedWriter(
@@ -34,15 +35,14 @@ public class TerminalController {
                     new InputStreamReader(process.getInputStream())
             );
 
-            // SINGLE thread → read output
             new Thread(() -> {
                 try {
                     String line;
                     while ((line = reader.readLine()) != null) {
                         messagingTemplate.convertAndSend("/topic/terminal", line);
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
+                    } catch (Exception e) {
+                        e.printStackTrace();
                 }
             }).start();
 
@@ -56,8 +56,8 @@ public class TerminalController {
     public void sendInput(String input) {
         try {
             if (writer != null) {
-                writer.write(input + "\n");
-                writer.newLine(); // important
+                writer.write(input);
+                writer.newLine(); 
                 writer.flush();
             }
         } catch (Exception e) {

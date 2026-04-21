@@ -35,8 +35,8 @@ function HomePage() {
           display: "flex",
           justifyContent: "space-between",
           padding: "20px 40px",
-          fontSize: "20px",
-          fontWeight: "bold",
+          fontSize: "30px",
+          fontWeight: "600",
         }}
       >
         Codera
