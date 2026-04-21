@@ -133,7 +133,7 @@ Available once the project is done
 
 ## 🧑‍💻 Author
 
-Sanjay
+Sanjay.R
 
 ---
 
