@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
@@ -12,8 +12,11 @@ function EditorPage() {
   const [typing, setTyping] = useState(false);
 
   const [terminal, setTerminal] = useState("");
-  const [input, setInput] = useState("");
+  const [currentInput, setCurrentInput] = useState("");
+
   const [stompClient, setStompClient] = useState(null);
+
+  const terminalRef = useRef(null);
 
   // 🔥 CONNECT WEBSOCKET
   useEffect(() => {
@@ -25,10 +28,10 @@ function EditorPage() {
 
         // terminal output
         client.subscribe("/topic/terminal", (msg) => {
-          setTerminal((prev) => prev + msg.body + "\n");
+          setTerminal((prev) => prev + msg.body);
         });
 
-        // start terminal
+        // start terminal initially
         client.publish({
           destination: "/app/terminal/start",
         });
@@ -65,6 +68,19 @@ function EditorPage() {
     };
   }, [roomId]);
 
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  }, [terminal, currentInput]);
+
+  // 🔥 AUTO FOCUS TERMINAL
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.focus();
+    }
+  }, []);
+
   // 🔥 SEND CODE
   const sendCode = (value) => {
     setCode(value);
@@ -88,7 +104,8 @@ function EditorPage() {
   const runCode = async () => {
     if (!stompClient) return;
 
-    setTerminal((prev) => prev + "\n> Running...\n");
+    setTerminal("> Running...\n");
+    setCurrentInput("");
 
     await fetch("http://localhost:8080/save", {
       method: "POST",
@@ -99,21 +116,34 @@ function EditorPage() {
     });
 
     stompClient.publish({
-      destination: "/app/terminal/input",
-      body: "python temp.py",
+      destination: "/app/terminal/start",
     });
+
+    if (terminalRef.current) {
+      terminalRef.current.focus();
+    }
   };
 
-  // 🔥 SEND INPUT
-  const sendInput = () => {
-    if (!stompClient || !input.trim()) return;
+  // 🔥 TERMINAL KEY HANDLER
+  const handleKeyDown = (e) => {
+    if (!stompClient) return;
 
-    stompClient.publish({
-      destination: "/app/terminal/input",
-      body: input,
-    });
+    if (e.key === "Enter") {
+      e.preventDefault();
 
-    setInput("");
+      stompClient.publish({
+        destination: "/app/terminal/input",
+        body: currentInput,
+      });
+
+      
+      setCurrentInput("");
+    } else if (e.key === "Backspace") {
+      e.preventDefault();
+      setCurrentInput((prev) => prev.slice(0, -1));
+    } else if (e.key.length === 1) {
+      setCurrentInput((prev) => prev + e.key);
+    }
   };
 
   // 🔥 COPY LINK
@@ -153,26 +183,26 @@ function EditorPage() {
         ▶ Run Code
       </button>
 
-      <pre
+      <div
+        ref={terminalRef}
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
         style={{
+          outline: "none",
           background: "black",
           color: "lime",
           height: "200px",
           overflow: "auto",
           marginTop: "10px",
+          padding: "10px",
+          fontFamily: "monospace",
+          whiteSpace: "pre-wrap",
         }}
       >
-        {terminal}
-      </pre>
-
-      <input
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        placeholder="Type input..."
-        style={{ width: "80%", padding: "5px" }}
-      />
-
-      <button onClick={sendInput}>Send</button>
+{terminal}
+<span style={{ color: "white" }}>{currentInput}</span>
+<span style={{ background: "lime", width: "8px", display: "inline-block" }}></span>
+      </div>
     </div>
   );
 }

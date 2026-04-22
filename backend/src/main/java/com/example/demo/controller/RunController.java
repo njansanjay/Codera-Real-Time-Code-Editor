@@ -40,8 +40,7 @@ public class RunController {
             String fileName = "temp.py";
             FileWriter writer = new FileWriter(fileName);
             writer.write(request.getCode());
-            // writer.close();
-
+            writer.close(); // ✅ VERY IMPORTANT
             return "Saved";
         } catch (Exception e) {
             return e.getMessage();

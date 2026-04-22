@@ -18,38 +18,48 @@ public class TerminalController {
         this.messagingTemplate = messagingTemplate;
     }
 
-    // 🔥 START TERMINAL
-    @MessageMapping("/terminal/start")
-    public void startTerminal() {
-        try {
-            ProcessBuilder builder = new ProcessBuilder("python", "-u", "temp.py");
-            builder.redirectErrorStream(true);
+@MessageMapping("/terminal/start")
+public void startTerminal() {
+    try {
 
-            process = builder.start();
-
-            writer = new BufferedWriter(
-                    new OutputStreamWriter(process.getOutputStream())
-            );
-
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream())
-            );
-
-            new Thread(() -> {
-                try {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        messagingTemplate.convertAndSend("/topic/terminal", line);
-                    }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                }
-            }).start();
-
-        } catch (Exception e) {
-            e.printStackTrace();
+        // kill old process if exists
+        if (process != null) {
+            process.destroy();
         }
+
+        ProcessBuilder builder = new ProcessBuilder("python", "-u", "temp.py");
+        builder.redirectErrorStream(true);
+
+        process = builder.start();
+
+        writer = new BufferedWriter(
+                new OutputStreamWriter(process.getOutputStream())
+        );
+
+        InputStream inputStream = process.getInputStream();
+
+        new Thread(() -> {
+            try {
+                int ch;
+                StringBuilder output = new StringBuilder();
+
+                while ((ch = inputStream.read()) != -1) {
+                    output.append((char) ch);
+
+                    // send character immediately
+                    messagingTemplate.convertAndSend("/topic/terminal", output.toString());
+                    output.setLength(0);
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+
+    } catch (Exception e) {
+        e.printStackTrace();
     }
+}
 
     // 🔥 RECEIVE USER INPUT
     @MessageMapping("/terminal/input")
