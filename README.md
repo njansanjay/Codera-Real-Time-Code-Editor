@@ -101,10 +101,6 @@ http://localhost:3000/
 
 
 
-2. Share the same URL with others
-
-3. Start coding together in real-time 🎉
-
 ---
 
 ## ⚠️ Limitations
