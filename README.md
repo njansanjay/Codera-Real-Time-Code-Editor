@@ -127,6 +127,12 @@ Available once the project is done
 
 ---
 
+## Project Map
+
+![Architecture Diagram](assets/architecture.png)
+
+---
+
 ## 🧑‍💻 Author
 
 Sanjay
