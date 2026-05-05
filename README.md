@@ -49,7 +49,7 @@ codera/
 ### 1️⃣ Clone Repository
 
 ```
-git clone https://github.com/njansanjay/codera.git
+git clone https://github.com/njansanjay/Codera-Real-Time-Code-Editor.git
 cd codera
 ```
 
