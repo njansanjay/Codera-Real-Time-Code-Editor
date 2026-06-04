@@ -129,7 +129,74 @@ Available once the project is done
 
 ## Project Map
 
-![Architecture Diagram](assets/architecture.png)
+```mermaid
+flowchart TB
+
+    %% Frontend
+    subgraph Frontend
+        App["React SPA Client<br/>App.js"]
+
+        Home["Home Page<br/>HomePage.js"]
+        Editor["Editor Page<br/>EditorPage.js"]
+        Bootstrap["Bootstrap UI Entry<br/>index.js"]
+        Styles["UI Styles<br/>index.css"]
+
+        Runtime["Editor Runtime<br/>Editor Client"]
+
+        App -->|renders| Home
+        App -->|renders| Editor
+        App -->|boots from| Bootstrap
+        App -->|uses| Styles
+
+        Home -->|joins room| Runtime
+        Editor -->|hosts| Runtime
+    end
+
+    %% Realtime Transport
+    subgraph "Real-Time Transport"
+        SockJS["SockJS Client"]
+        STOMP["STOMP Messaging Client"]
+        WS["WebSocket Link"]
+
+        SockJS -->|wraps| STOMP
+        STOMP -->|publishes/subscribes| WS
+    end
+
+    Runtime -->|connects via| SockJS
+
+    %% Backend
+    subgraph Backend
+        Config["App Config"]
+        Server["Spring Boot App Server"]
+        WSConfig["WebSocket Config"]
+
+        Config -->|configures| Server
+        Server -->|loads| WSConfig
+
+        Terminal["Terminal Controller"]
+        Run["Run Controller<br/>RunController.java"]
+        Code["Code Controller"]
+
+        WSConfig -->|routes to| Terminal
+        WSConfig -->|routes to| Run
+        WSConfig -->|routes to| Code
+
+        CodeMessage["CodeMessage.java"]
+        CodeRequest["CodeRequest.java"]
+
+        Terminal -->|emits| CodeMessage
+        Run -->|emits| CodeMessage
+        Code -->|emits| CodeMessage
+
+        Code -->|accepts| CodeRequest
+    end
+
+    WS -->|terminates at| WSConfig
+
+    Runtime -->|streams to| Terminal
+    Runtime -->|triggers| Run
+    Runtime -->|syncs with| Code
+```
 
 ---
 
